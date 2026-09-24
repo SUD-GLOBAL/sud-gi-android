@@ -2,60 +2,100 @@
 
 ## Installation
 
-### 1. Manually Integrate the SUDGI SDK
+### 1. Integrating the SUDGI SDK Manually
 
-##### SDK: Android-SUDGI-v2.0.0.1301.zip
+#### Download [SUDGI](https://github.com/SUD-GLOBAL/sud-gi-android/releases)
 
-Extract the ZIP package to obtain the AAR file, copy the AAR file into your project, and add it as a dependency in your project.
+##### SDK: Android-SUDGI-v2.1.0.zip
 
-### 2. Integrate the SUDGI SDK via Maven
+Extract the ZIP archive, copy `SUDGI-v2.1.0.aar`, `SUDCoreKit-v2.1.0.aar`, and `SUD-report-v2.1.0.aar` into your project, and add them as dependencies. Include each shared library only once.
 
-```ruby
-// For apps published on Google Play, use the following dependency instead:
-// api 'global.sud.gi:SUDGI-static:2.0.0.1301'
+Add optional extensions as needed:
 
-api 'global.sud.gi:SUDGI:2.0.0.1301'
+| Feature | AAR File | Artifact Directory |
+| --- | --- | --- |
+| MP3 encoding for the game runtime | `SUDGI-shine-v2.1.0.aar` | `Android-SUDGI-shine-v2.1.0` |
+| AdMob ad source | `SUDM-adapter-admob-v2.1.0.aar` | `Android-SUDM-core-v2.1.0` |
+| Carty ad source | `SUDM-adapter-carty-v2.1.0.aar` | `Android-SUDM-core-v2.1.0` |
+| TopOn ad source | `SUDM-adapter-topon-v2.1.0.aar` | `Android-SUDM-core-v2.1.0` |
+
+When integrating an ad adapter manually, also add `SUDM-core`, `SUDCoreKit`, and `SUD-report` of the same version, along with the third-party dependencies listed in the corresponding Maven POM. Copying the adapter AAR alone does not automatically include its dependencies.
+
+### 2. Integrating the SUDGI SDK via Maven
+
+The following example uses the Gradle Groovy DSL (`build.gradle`). All SUD libraries use version `2.1.0`.
+
+```groovy
+dependencies {
+    // Choose either SUDGI or SUDGI-static; use SUDGI-static when publishing on Google Play
+    api "global.sud.gi:SUDGI:2.1.0"
+    // api "global.sud.gi:SUDGI-static:2.1.0"
+
+    // Optional: provide MP3 encoding for the game runtime
+    // implementation "global.sud.gi:SUDGI-shine:2.1.0"
+}
 ```
+
+To integrate ads, add at least one of the following ad sources to the `dependencies` block above, according to your requirements. You do not need to include all of them:
+
+```groovy
+implementation "global.sud.gi:SUDM-adapter-admob:2.1.0"
+implementation "global.sud.gi:SUDM-adapter-carty:2.1.0"
+implementation "global.sud.gi:SUDM-adapter-topon:2.1.0"
+```
+
+Maven automatically includes dependencies based on the POM: `SUDGI` / `SUDGI-static` depends on `SUDCoreKit` and `SUD-report` of the same version; each ad adapter depends on `SUDM-core` of the same version and the corresponding third-party libraries. You must still configure the repositories, application identifiers, and initialization settings required by each ad source, as described in its integration guide.
 
 ---
 
-## Package Size Increase
+## App Size Impact
 
 > [!NOTE]
-> The size values below are approximate and are intended for dependency selection and APK size estimation.
+> The figures below are based on version 2.1.0 artifacts. AAR file sizes and uncompressed native shared library (.so) sizes are measured separately and do not represent the final increase in APK size. Units are calculated as 1 MB = 1,000,000 bytes and 1 KB = 1,000 bytes.
 
-- The actual APK size increase may vary depending on build configuration, code obfuscation, resource shrinking, native library compression, ABI configuration, and whether the app is packaged as an APK or AAB.
-- The "Approximate Total Size / Increase" values in the table below are estimates when all supported ABIs are included. They do not represent the final size of an APK containing only a single ABI.
-- If the APK includes only one ABI, it will typically contain only the native `.so` files for that architecture, and the actual package size increase will be reduced accordingly.
-- If the APK includes multiple ABIs, the `.so` files for all included architectures will be packaged into the APK, and their sizes will be cumulative.
-- The dependency names below do not include specific version numbers. Please use the corresponding version number when integrating the SDK.
+- The actual increase in APK size depends on libraries, build configuration, code obfuscation, resource shrinking, native library compression, ABI configuration, and APK/AAB packaging, among other factors.
+- The AAR file sizes below include all ABIs bundled in each AAR, but exclude Maven transitive dependencies.
+- Ad adapters do not contain native shared libraries themselves. However, their third-party ad SDK dependencies may include native libraries, resources, and other dependencies, which must also be evaluated.
+- An APK that retains only one ABI generally includes only the native libraries for that architecture. If multiple ABIs are included, the native library sizes for those architectures add up.
 
 ### Artifact Size Overview
 
-| Dependency | Includes `.so` Files | Approximate Total Size / Increase | Description |
+| Artifact | Contains Native Shared Libraries | AAR File Size | Notes |
 | --- | :---: | ---: | --- |
-| `SUDGI` | No | Approx. **1.3 MB** | Recommended. Adds less to the APK size. |
-| `SUDGI-static` | Yes | Approx. **16.3 MB** | Includes `.so` files for two ABI architectures. |
+| `SUDGI` | No | Approx. **1.52 MB** | Excludes transitive dependencies such as shared libraries |
+| `SUDGI-static` | Yes | Approx. **17.49 MB** | Includes native libraries for two ABIs; excludes transitive dependencies such as shared libraries |
+| `SUDGI-shine` | Yes | Approx. **83.3 KB** | Optional MP3 encoding extension; includes native libraries for four ABIs |
+| `SUDM-adapter-admob` | No | Approx. **88.1 KB** | AdMob adapter; excludes SUDM-core and third-party ad SDKs |
+| `SUDM-adapter-carty` | No | Approx. **35.5 KB** | Carty adapter; excludes SUDM-core and third-party ad SDKs |
+| `SUDM-adapter-topon` | No | Approx. **51.4 KB** | TopOn adapter; excludes SUDM-core and third-party ad SDKs |
 
-### `.so` Size by ABI
+### Native Library Sizes by ABI
 
-| Dependency | arm64-v8a | armeabi-v7a |
-| --- | ---: | ---: |
-| `SUDGI-static` | Approx. 8 MB | Approx. 6.7 MB |
+The following figures show the total uncompressed size of all native shared libraries for each ABI in the AAR.
+
+| Artifact | arm64-v8a | armeabi-v7a | x86 | x86_64 |
+| --- | ---: | ---: | ---: | ---: |
+| `SUDGI-static` | Approx. 24.12 MB | Approx. 14.97 MB | — | — |
+| `SUDGI-shine` | Approx. 39.4 KB | Approx. 31.6 KB | Approx. 36.9 KB | Approx. 39.0 KB |
 
 ---
 
 ## Android Version Requirements
 
-Different SDK artifacts have different minimum Android version requirements. Configure the corresponding `minSdk` value in your project.
+The table below lists the minimum Android version declared in each version 2.1.0 AAR's own manifest. Your project's `minSdk` must satisfy the requirements of all selected modules and their transitive dependencies. When integrating with `SUDGI` / `SUDGI-static`, the minimum is at least Android 8.0 (API 26).
 
-| Dependency | Minimum Android Version |
+| Artifact | Minimum Android Version Declared by the AAR |
 | --- | ---: |
 | `global.sud.gi:SUDGI` | Android 8.0 (API 26) |
 | `global.sud.gi:SUDGI-static` | Android 8.0 (API 26) |
+| `global.sud.gi:SUDGI-shine` | Android 5.0 (API 21) |
+| `global.sud.gi:SUDM-adapter-admob` | Android 6.0 (API 23) |
+| `global.sud.gi:SUDM-adapter-carty` | Android 5.1 (API 22) |
+| `global.sud.gi:SUDM-adapter-topon` | Android 8.0 (API 26) |
 
 ---
 
 ## Integration Demo
 
 [QuickStart](https://github.com/SudTechnology/Hello-SUD-OpenPaaS-Android)
+
